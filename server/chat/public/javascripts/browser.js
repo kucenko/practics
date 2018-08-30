@@ -17,7 +17,9 @@
         }else if (json.type === 'message') { // it's a single message
             addMessage(json.data.author, json.data.text,
                        json.data.color, new Date(json.data.time));
-        } 
+        } else if (json.type === 'connected_new_user') {
+            status.text('Your message:');
+        }
     };
 
     input.keydown(function(e) {
