@@ -1,99 +1,107 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
-
-import {connectWs, addWsListener, removeWsListener} from "./utils/ws";
+import { connectWs, addWsListener, removeWsListener } from './utils/ws';
+import { formatDate, setElementColor } from './utils/utils';
 
 const { emit, connectionOpened } = connectWs('ws://192.168.110.49:3000');
-let isConnectionOpened = false;
-
-connectionOpened.then(() => {
-    isConnectionOpened = true;
-})
 
 class App extends Component {
     state = {
         messageLabel: 'Connecting...',
         message: '',
-        messages: []
-    }
+        messages: [],
+        isConnectionOpened: false
+    };
+
+    onSubmit = event => {
+        event.preventDefault();
+        emit(this.state.message);
+    };
+
+    onMessageChange = ({ target: { value: message } }) => {
+        this.setState({ message });
+    };
 
     componentDidMount() {
-        if (isConnectionOpened) {
+        connectionOpened.then(() => {
+            this.isConnectionOpened = true;
+        });
+
+        this.changeMessageLabelOnConnection();
+        this.connectWsListeners();
+    }
+
+    changeMessageLabelOnConnection() {
+        if (this.isConnectionOpened) {
             this.changeMessageLabel('Enter name: ');
         } else {
             connectionOpened.then(() => {
                 this.changeMessageLabel('Enter name: ');
             });
         }
+    }
 
-        addWsListener("connected_new_user", () => {
-            this.changeMessageLabel('Enter message: ');
-            this.changeMessage('');
+    connectWsListeners() {
+        addWsListener('connected_new_user', () => {
+            this.handleMessagesAndLabel('Enter message: ', '');
         });
 
-        addWsListener("message", (data) => {
-            this.changeMessage('');
-            this.changeMessages(data);
+        addWsListener('message', (message) => {
+            this.handleMessages(message);
         });
+    }
+
+    handleMessages(message) {
+        this.setState(({ messages }) => ({
+            messages: [...messages, message],
+            message: ''
+        }));
+    }
+
+    handleMessagesAndLabel(messageLabel, message) {
+        this.setState({ messageLabel, message });
     }
 
     changeMessageLabel(messageLabel) {
-        this.setState({ messageLabel })
-    }
-
-    changeMessages(message) {
-        this.setState(({ messages }) => ({ messages: [...messages, message] }))
-    }
-
-    changeMessage(message) {
-        this.setState({ message })
-    }
-
-    onSubmit(event) {
-        event.preventDefault();
-        emit(this.state.message);
-    }
-
-    onMessageChange({ target: { value: message } }) {
-        this.setState({ message })
+        this.setState({ messageLabel });
     }
 
     render() {
-        const setAuthorColor = (color) => ({color})
+        const { message, messageLabel, messages } = this.state;
 
         return (
             <div className="chat container">
                 <div className="messages">
-                    {this.state.messages.map(messageObj => {
+                    {messages.map(messageObj => {
                         const dt = new Date(messageObj.time)
 
                         return (
                             <div className="message row">
-                                <span style={setAuthorColor(messageObj.color)}>
+                                <span style={setElementColor(messageObj.color)}>
                                     {messageObj.author}
                                 </span>
-                                @ {dt.getHours()} : {dt.getMinutes() < 10 ? ('0' + dt.getMinutes()) : dt.getMinutes()} ---- {messageObj.text}
+                                {formatDate(dt)} ---- {messageObj.text}
                     </div>
                     )
                     })}
                 </div>
-                <form onSubmit={event => this.onSubmit(event)}>
+                <form onSubmit={this.onSubmit}>
                     <div className="row justify-content-sm-center align-items-center form-group">
-                        <label htmlFor="message">{this.state.messageLabel}</label>
+                        <label htmlFor="message">{messageLabel}</label>
                         <div className="col-sm-4">
                             <input
                                 autoComplete="off"
                                 id="message"
                                 className="form-control"
                                 type="text"
-                                value={this.state.message}
-                                onChange={event => this.onMessageChange(event)}/>
+                                value={message}
+                                onChange={this.onMessageChange}/>
                         </div>
                         <input
                             className="btn btn-primary"
                             type="submit"
-                            disabled={!isConnectionOpened}/>
+                            disabled={!this.isConnectionOpened}/>
                     </div>
                 </form>
             </div>
