@@ -6,9 +6,9 @@ const listeners = {
 }
 
 /**
- * 
+ *
  * Подписка на получение данных от WebSocket
- * 
+ *
  * @param {string} name Имя события connected_new_user|disconnected_user|message
  * @param {Function} fn Функция callback при срабатывании события
  */
@@ -19,9 +19,9 @@ export function addWsListener(name, fn) {
 }
 
 /**
- * 
+ *
  * Отписка от получения данных по WebSocket
- * 
+ *
  * @param {string} name Имя события connected_new_user|disconnected_user|message
  * @param {Function} fn Функция callback при срабатывании события
  */
@@ -49,14 +49,19 @@ function getParams(messageObj) {
 
 /**
  * Подключение WebSocket к приложению
- * 
+ *
  * @param {string} wsUrl Базовый урл для WebSocket
  */
 export function connectWs(wsUrl) {
-	const ws = new WebSocket(wsUrl)
+    let connectionOpenedResolver;
+	const ws = new WebSocket(wsUrl);
+	const connectionOpened = new Promise(resolve => {
+        connectionOpenedResolver = resolve
+    });
 
 	ws.onopen = () => {
-		console.log('WS Open!')
+        connectionOpenedResolver();
+		console.log('WS Open!');
 	}
 
 	ws.onmessage = (message) => {
@@ -87,5 +92,5 @@ export function connectWs(wsUrl) {
 		countReconnect = 0
 	}
 
-	return { emit }
+	return { emit, connectionOpened }
 }
